@@ -30,14 +30,33 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [recharges, setRecharges] = useState<any[]>([]);
+  const [withdraws, setWithdraws] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [isSignup, setIsSignup] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     loadAllData();
   }, []);
 
   const loadAllData = async () => {
-    const { data } = await supabase.from('users').select('*');
-    if (data) setUsers(data);
+    const [usersData, matchesData, rechargesData, withdrawsData, groupsData] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('matches').select('*'),
+      supabase.from('recharges').select('*'),
+      supabase.from('withdraws').select('*'),
+      supabase.from('groups').select('*')
+    ]);
+    if (usersData.data) setUsers(usersData.data);
+    if (matchesData.data) setMatches(matchesData.data);
+    if (rechargesData.data) setRecharges(rechargesData.data);
+    if (withdrawsData.data) setWithdraws(withdrawsData.data);
+    if (groupsData.data) setGroups(groupsData.data);
   };
 
   const handleLogin = async (email: string, password: string) => {
@@ -55,13 +74,38 @@ function App() {
     }
   };
 
+  const handleSignup = async (userData: any) => {
+    const newUser: User = {
+      id: Date.now(),
+      uid: `#ES-${users.length + 1}`,
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      phone: userData.phone,
+      wallet: 0,
+      totalMatches: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      totalEarned: 0,
+      joinDate: new Date().toISOString(),
+      status: 'active'
+    };
+    const { error } = await supabase.from('users').insert([newUser]);
+    if (error) {
+      alert('خطأ في التسجيل');
+    } else {
+      alert('تم إنشاء الحساب بنجاح');
+      loadAllData();
+    }
+  };
+
   const handleLogout = () => {
     setCurrentUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
   };
 
-  if (isLoggedIn && isAdmin) {
+  if (isAdmin) {
     return (
       <div className="min-h-screen bg-[#0b0b0f]">
         <div className="max-w-6xl mx-auto p-4">
@@ -129,28 +173,63 @@ function App() {
 
   if (isLoggedIn && currentUser) {
     return (
-      <div className="min-h-screen bg-[#0b0b0f]">
+      <div className="min-h-screen bg-[#0b0b0f] pb-24">
         <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-[#12121a] rounded-2xl p-6 border border-white/5 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-2xl font-bold text-white">{currentUser.name.charAt(0)}</div>
+          
+          {/* بانر الإعلان */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl p-4 mb-6">
+            <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-white font-bold text-xl">{currentUser.name}</h2>
-                <p className="text-yellow-500 text-xs">🆔 {currentUser.uid}</p>
+                <p className="text-yellow-400 text-xs">بطولة الأسبوع</p>
+                <h1 className="text-white font-bold text-xl">تحفيات الأسطورية</h1>
+              </div>
+              <div className="bg-white/10 rounded-xl p-2">
+                <span className="text-white text-2xl">⚽</span>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          {/* الأرقام */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-[#12121a] rounded-2xl p-4 border border-white/5">
-              <p className="text-white/40 text-xs">💰 الرصيد</p>
+              <p className="text-white/40 text-xs">💸 رصيد الحساب</p>
               <p className="text-green-400 font-bold text-3xl">${currentUser.wallet.toFixed(2)}</p>
+              <button className="mt-2 bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full">🔄 شحن</button>
             </div>
             <div className="bg-[#12121a] rounded-2xl p-4 border border-white/5">
-              <p className="text-white/40 text-xs">🏆 الأرباح</p>
+              <p className="text-white/40 text-xs">💰 إجمالي الأرباح</p>
               <p className="text-yellow-400 font-bold text-3xl">${currentUser.totalEarned.toFixed(2)}</p>
+              <button className="mt-2 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full">💸 سحب</button>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full mt-4 bg-red-600 py-3 rounded-xl text-white font-semibold">🚪 خروج</button>
+
+          {/* الأزرار */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-[#12121a] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white text-xl">+</div>
+              <div>
+                <p className="text-white font-bold">إنشاء تحدي</p>
+                <p className="text-white/40 text-xs">ضد صديق</p>
+              </div>
+            </div>
+            <div className="bg-[#12121a] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center text-white text-xl">⚔️</div>
+              <div>
+                <p className="text-white font-bold">المباريات المتاحة</p>
+                <p className="text-white/40 text-xs">ابحث عن خصم</p>
+              </div>
+            </div>
+          </div>
+
+          {/* المباراة النشطة */}
+          <div className="bg-[#12121a] rounded-2xl p-4 border border-white/5 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-white/40 text-xs">Active Match</p>
+              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">🔴</span>
+            </div>
+            <p className="text-yellow-400 text-sm mb-4">⚠️ مباراة جارية حالياً #📱[Match ID]</p>
+            <button className="w-full bg-white/5 py-2 rounded-xl text-white/70 text-sm">دخول الفرقة</button>
+          </div>
         </div>
       </div>
     );
@@ -166,27 +245,25 @@ function App() {
         </div>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          await handleLogin(email, password);
+          if (isSignup) await handleSignup({ name, email, password, phone });
+          else await handleLogin(email, password);
         }} className="bg-[#12121a] rounded-2xl p-8 space-y-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="البريد الإلكتروني"
-            className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white"
-            required
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="كلمة المرور"
-            className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white"
-            required
-          />
+          {isSignup && (
+            <>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم" required className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white" />
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="رقم الهاتف" required className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white" />
+            </>
+          )}
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني" required className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور" required className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-3 text-white" />
           <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-green-400 py-3 rounded-xl text-white font-semibold">
-            تسجيل الدخول
+            {isSignup ? 'إنشاء حساب' : 'تسجيل الدخول'}
           </button>
+          <p className="text-center text-gray-500 text-sm">
+            <button type="button" onClick={() => setIsSignup(!isSignup)}>
+              {isSignup ? 'لديك حساب؟ سجل دخول' : 'ليس لديك حساب؟ أنشئ حساب'}
+            </button>
+          </p>
         </form>
       </div>
     </div>
