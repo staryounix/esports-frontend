@@ -5,7 +5,7 @@ const supabase = createClient(
   'https://fngttmeuonurvxlbdsrk.supabase.co',
   'sb_publishable_WaV9QizkutlQ8biHlz224A_UahRfYLw'
 );
-
+import AdminPanel from './AdminPanel';
 interface User {
   id: number;
   uid: string;
@@ -935,10 +935,10 @@ function App() {
     setIsLoggedIn(false);
     setIsAdmin(false);
   };
-
-  if (isLoggedIn && isAdmin) {
-    return <AdminPanel users={users} setUsers={setUsers} groupRequests={groupRequests} setGroupRequests={setGroupRequests} rechargeRequests={rechargeRequests} setRechargeRequests={setRechargeRequests} matchRequests={matchRequests} onLogout={handleLogout} refreshUsers={refreshUsers} />;
-  }
+if (window.location.pathname === '/admin') {
+  return <AdminPanel />;
+      }
+  
 
   if (isLoggedIn && currentUser) {
     return <UserHome user={currentUser} onLogout={handleLogout} users={users} setUsers={setUsers} matchRequests={matchRequests} setMatchRequests={setMatchRequests} rechargeRequests={rechargeRequests} setRechargeRequests={setRechargeRequests} groupRequests={groupRequests} setGroupRequests={setGroupRequests} />;
