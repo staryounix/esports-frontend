@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  'https://fngttmeuonurvxlbdsrk.supabase.co',
+  'sb_publishable_WaV9QizkutlQ8biHlz224A_UahRfYLw'
+);
 
 interface User {
   id: number;
@@ -59,44 +65,41 @@ interface RechargeRequest {
 
 const ADMIN_WHATSAPP = '212604084574';
 
-// ✅ دالة الحفظ - كترسل البيانات للسيرفر
 const saveData = async (key: string, data: any) => {
   try {
     if (key === 'users') {
-      await fetch('http://localhost:4000/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { error } = await supabase.from('users').upsert(data);
+      if (error) console.error('Supabase Error:', error);
     } else if (key === 'groupRequests') {
-      await fetch('http://localhost:4000/api/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { error } = await supabase.from('groupRequests').upsert(data);
+      if (error) console.error('Supabase Error:', error);
     } else if (key === 'matchRequests') {
-      await fetch('http://localhost:4000/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { error } = await supabase.from('matchRequests').upsert(data);
+      if (error) console.error('Supabase Error:', error);
     } else if (key === 'rechargeRequests') {
-      await fetch('http://localhost:4000/api/recharges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { error } = await supabase.from('rechargeRequests').upsert(data);
+      if (error) console.error('Supabase Error:', error);
     }
   } catch (err) {
-    console.log('Failed to save to server', err);
+    console.log('Failed to save to Supabase', err);
   }
 };
 
-// ✅ دالة التحميل - كتجبد البيانات من السيرفر
-const loadData = (key: string, defaultData: any) => {
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    try { return JSON.parse(saved); } catch (e) { return defaultData; }
+const loadData = async (key: string, defaultData: any) => {
+  try {
+    let table = '';
+    if (key === 'users') table = 'users';
+    else if (key === 'groupRequests') table = 'groupRequests';
+    else if (key === 'matchRequests') table = 'matchRequests';
+    else if (key === 'rechargeRequests') table = 'rechargeRequests';
+
+    if (table) {
+      const { data, error } = await supabase.from(table).select('*');
+      if (error) throw error;
+      return data || defaultData;
+    }
+  } catch (err) {
+    console.log('Failed to load from Supabase', err);
   }
   return defaultData;
 };
@@ -115,7 +118,6 @@ const generateGroupName = (groups: GroupRequest[]) => {
   return `MR-${maxNum + 1}`;
 };
 
-// ======================== صفحة تسجيل الدخول ========================
 const LoginPage = ({ onLogin, users, setUsers }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -224,7 +226,6 @@ const LoginPage = ({ onLogin, users, setUsers }: any) => {
   );
 };
 
-// ======================== لوحة تحكم الإدمن ========================
 const AdminPanel = ({ users, setUsers, groupRequests, setGroupRequests, rechargeRequests, setRechargeRequests, matchRequests, onLogout, refreshUsers }: any) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [addAmount, setAddAmount] = useState(0);
@@ -533,7 +534,6 @@ const AdminPanel = ({ users, setUsers, groupRequests, setGroupRequests, recharge
   );
 };
 
-// ======================== شريط التنقل ========================
 const NavBar = ({ tabs, activeTab, setActiveTab }: any) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-white/5 flex justify-around items-center py-2 px-4">
@@ -547,7 +547,6 @@ const NavBar = ({ tabs, activeTab, setActiveTab }: any) => {
   );
 };
 
-// ======================== الصفحة الرئيسية للمستخدم ========================
 const UserHome = ({ user, onLogout, users, setUsers, matchRequests, setMatchRequests, rechargeRequests, setRechargeRequests, groupRequests, setGroupRequests }: any) => {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedAmount, setSelectedAmount] = useState(5);
@@ -871,7 +870,6 @@ const UserHome = ({ user, onLogout, users, setUsers, matchRequests, setMatchRequ
   );
 };
 
-// ======================== التطبيق الرئيسي ========================
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
